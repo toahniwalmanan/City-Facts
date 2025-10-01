@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Fun Facts</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .facts-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            display: none;
+        }
+        .fact {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .input-group {
+            margin: 20px 0;
+            display: none;
+        }
+        input {
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            width: 70%;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            border-color: #3498db;
+        }
+        .location-display {
+            font-weight: bold;
+            color: #3498db;
+            margin: 15px 0;
+            font-size: 18px;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Location Fun Facts</h1>
+        <p>Discover interesting facts about your current location or any place in the world!</p>
+        
+        <button id="current-location-btn" class="btn">Use My Current Location</button>
+        <button id="manual-location-btn" class="btn">Enter Different Location</button>
+        
+        <div id="input-group" class="input-group">
+            <input type="text" id="location-input" placeholder="Enter city, country, or landmark...">
+            <button id="search-btn" class="btn">Search</button>
+        </div>
+        
+        <div id="loader" class="loader"></div>
+        
+        <div id="location-display" class="location-display"></div>
+        
+        <div id="facts-container" class="facts-container">
+            <h2>Fun Facts</h2>
+            <div id="facts-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Location facts database (simplified for demo)
+        const locationFacts = {
+            // Countries
+            "united states": [
+                "The United States has 63 national parks spanning over 52 million acres.",
+                "The U.S. consumes about 3 billion pizzas every year.",
+                "The Liberty Bell has a crack that's about 2 feet long.",
+                "Alaska has more coastline than all the other U.S. states combined.",
+                "Route 66, one of America's first highways, spans 8 states and over 2,400 miles."
+            ],
+            "canada": [
+                "Canada has more lakes than the rest of the world's lakes combined.",
+                "The Canadian postal code for Santa Claus is H0H 0H0.",
+                "Canada has the world's longest coastline at 151,019 miles.",
+                "20% of the world's fresh water is in Canada.",
+                "The Canadian National Tower in Toronto was the world's tallest freestanding structure until 2007."
+            ],
+            "japan": [
+                "Japan has more than 5.5 million vending machines, which is the highest density in the world.",
+                "There are over 200 volcanoes in Japan, with about 60 considered active.",
+                "The Japanese have over 20 different words for 'rain'.",
+                "Slurping noodles is considered polite in Japan, as it shows you're enjoying the meal.",
+                "The world's oldest company operated in Japan for over 1,400 years until 2006."
+            ],
+            "australia": [
+                "Australia is the only continent without an active volcano.",
+                "More than 80% of Australia's plants, mammals, and reptiles are unique to the country.",
+                "Australia has over 10,000 beaches, which would take you about 27 years to visit all of them.",
+                "The Great Barrier Reef is the largest living structure on Earth.",
+                "Australia has the world's largest population of wild camels, with over 1 million."
+            ],
+            // Cities
+            "new york": [
+                "The New York Public Library has over 50 million items in its collection.",
+                "More than 800 languages are spoken in New York City, making it the most linguistically diverse city in the world.",
+                "The first pizzeria in the United States opened in New York City in 1905.",
+                "New York City's Central Park is larger than the principality of Monaco.",
+                "The subway system has 472 stations, the most of any system in the world."
+            ],
+            "paris": [
+                "There are 6,100 streets in Paris, and the shortest one is just 5.75 meters long.",
+                "The Eiffel Tower can grow up to 6 inches taller in summer due to thermal expansion.",
+                "Paris has only one stop sign in the entire city.",
+                "There's a full-size replica of the Statue of Liberty on the Seine River in Paris.",
+                "The Louvre would take about 100 days to see every piece of art if you spent just 30 seconds on each."
+            ],
+            "london": [
+                "Despite its reputation for rain, London actually receives less precipitation than Rome, Toulouse, or Naples.",
+                "The London Underground is the oldest underground railway network in the world.",
+                "More than 300 languages are spoken in London, making it one of the most linguistically diverse cities.",
+                "The Great Fire of London in 1666 destroyed 80% of the city.",
+                "London's Big Ben is actually the name of the bell, not the clock tower."
+            ],
+            "tokyo": [
+                "Tokyo has the world's busiest pedestrian crossing, with as many as 3,000 people crossing at once.",
+                "There are more than 36,000 ramen restaurants in Tokyo.",
+                "Tokyo's Tsukiji Fish Market is the largest fish market in the world.",
+                "Tokyo has over 200 earthquakes each year, though most are too small to feel.",
+                "Despite being one of the world's largest cities, Tokyo has an amazingly low crime rate."
+            ],
+            "mumbai": [
+                "Mumbai's film industry, Bollywood, produces more films annually than Hollywood.",
+                "The city was originally a cluster of seven islands that were joined through land reclamation projects.",
+                "Mumbai's Dabbawalas deliver around 200,000 lunch boxes daily with an error rate of just one in 16 million deliveries.",
+                "The city has the world's most expensive private residence - Antilia, owned by Mukesh Ambani.",
+                "Mumbai's local trains carry about 7.5 million passengers every day, making it one of the busiest commuter rail systems in the world."
+            ],
+            "delhi": [
+                "Delhi has been continuously inhabited since the 6th century BCE and has served as the capital of various empires.",
+                "The city has the largest spice market in Asia, Khari Baoli, operating since the 17th century.",
+                "Delhi's Qutub Minar is the tallest brick minaret in the world at 73 meters tall.",
+                "The city has more than 1,200 heritage buildings and monuments.",
+                "Delhi's metro system is one of the world's largest and most sustainable, running partially on solar power."
+            ],
+            "bangalore": [
+                "Bangalore has the highest number of tech startups in India, earning it the nickname 'Silicon Valley of India'.",
+                "The city has over 40 lakes, though many have been lost to urbanization.",
+                "Bangalore enjoys one of the best climates in India with temperatures rarely exceeding 35°C or dropping below 14°C.",
+                "The city's Lalbagh Botanical Garden houses India's largest collection of rare tropical plants.",
+                "Bangalore was the first city in India to have electric street lights, installed in 1905."
+            ],
+            "hyderabad": [
+                "Hyderabad is home to the world's largest film studio complex, Ramoji Film City.",
+                "The city's Golconda Fort had one of the most sophisticated water systems of its time.",
+                "Hyderabad was once home to the world's richest man, the Nizam of Hyderabad, in the early 20th century.",
+                "The iconic Charminar was built in 1591 to commemorate the eradication of plague from the city.",
+                "Hyderabad's biryani uses a unique cooking method called 'dum' where the pot is sealed with dough to trap steam."
+            ],
+            "chennai": [
+                "Chennai has the second-longest urban beach in the world, Marina Beach, stretching 13 kilometers.",
+                "The city was the first in India to introduce a corporation system of civic administration in 1688.",
+                "Chennai has one of the largest public library networks in the world with over 6 million books.",
+                "The city's Music Season is the world's largest cultural event with over 1,500 performances in 60 days.",
+                "Chennai is home to one of the oldest existing corporations in the world, the Madras Corporation, established in 1688."
+            ],
+            "kolkata": [
+                "Kolkata has the world's only operating tram system in India, running since 1873.",
+                "The city's Howrah Bridge is one of the busiest cantilever bridges in the world, used by 100,000 vehicles and 150,000 pedestrians daily.",
+                "Kolkata was the capital of British India until 1911.",
+                "The city celebrates Durga Puja so elaborately that UNESCO recognized it as an Intangible Cultural Heritage.",
+                "Kolkata's College Street is the largest second-hand book market in the world and the largest book market in India."
+            ],
+            "ahmedabad": [
+                "Ahmedabad is India's first UNESCO World Heritage City.",
+                "The city is home to Gandhi's Sabarmati Ashram, which served as his residence for 12 years.",
+                "Ahmedabad's Sidi Saiyyed Mosque features the famous 'Tree of Life' jali (lattice) carving.",
+                "The city celebrates Uttarayan, one of the biggest kite festivals in the world.",
+                "Ahmedabad has one of the largest denim production capacities in the world, earning it the nickname 'Denim City'."
+            ],
+            "pune": [
+                "Pune has the largest number of two-wheelers in the world in a single city.",
+                "The city is home to Asia's first girls' school, established in 1848.",
+                "Pune houses the world's largest operational onshore wind farm at Supa, near the city.",
+                "The city is often called the 'Oxford of the East' due to its numerous educational institutions.",
+                "Pune was once the base of the Peshwas who were the prime ministers of the Maratha Empire."
+            ],
+            "jaipur": [
+                "Jaipur is known as the 'Pink City' because its buildings were painted pink in 1876 to welcome the Prince of Wales.",
+                "The city was India's first planned city, designed according to Vastu Shastra principles in 1727.",
+                "Jaipur's Jantar Mantar has the world's largest stone sundial, accurate to 2 seconds.",
+                "The city hosts the world's largest free literary festival, the Jaipur Literature Festival.",
+                "Jaipur was founded by Maharaja Sawai Jai Singh II, who was also a noted astronomer."
+            ],
+            "lucknow": [
+                "Lucknow is famous for its unique style of embroidery called Chikankari, dating back 400 years.",
+                "The city has a 'gharana' (school) of classical music and dance named after it.",
+                "Lucknow's Bara Imambara has the world's largest arched hallway with no supporting beams.",
+                "The city is known for its distinctive Urdu dialect called 'Lakhnawi', known for its politeness.",
+                "Lucknow is home to La Martinière College, the only school in the world to have been awarded a battle honor."
+            ],
+            "agra": [
+                "Besides the Taj Mahal, Agra has two other UNESCO World Heritage sites: Agra Fort and Fatehpur Sikri.",
+                "The Taj Mahal changes color subtly throughout the day due to its semiprecious stones and white marble.",
+                "Agra's Mughal cuisine, especially its petha (a sweet), is made using techniques passed down since the 16th century.",
+                "The city was the capital of the Mughal Empire for nearly 100 years.",
+                "Agra's Sheroes Hangout Café is run entirely by acid attack survivors."
+            ],
+            "varanasi": [
+                "Varanasi is one of the oldest continuously inhabited cities in the world, dating back to 1800 BCE.",
+                "The city has 88 ghats (riverfront steps) along the Ganges River.",
+                "Varanasi is home to Banaras Hindu University, one of Asia's largest residential universities.",
+                "The city is the world center for the study of Sanskrit and classical Indian music traditions.",
+                "Varanasi's silk weaving tradition dates back to the Buddha's time, over 2,500 years ago."
+            ],
+            "surat": [
+                "Surat processes 90% of the world's diamonds, earning it the nickname 'Diamond City'.",
+                "The city was one of the first Indian cities to have a municipal corporation, established in 1852.",
+                "Surat survived and rebuilt after being sacked by various invaders 7 times in its history.",
+                "The city was once known as the Port of Mecca because most pilgrims from South Asia departed from here.",
+                "Surat is famous for its textile industry, producing over 40% of the country's synthetic fabric."
+            ],
+            "kochi": [
+                "Kochi has the oldest European church in India, St. Francis Church, built in 1503.",
+                "The city features the world's only International Container Transshipment Terminal operating within a Special Economic Zone.",
+                "Kochi has India's oldest synagogue still in active use, the Paradesi Synagogue from 1568.",
+                "The city's Chinese fishing nets have been in use since the 14th century and are unique in India.",
+                "Kochi was the first city in India to have its international airport fully powered by solar energy."
+            ],
+            "udaipur": [
+                "Udaipur has Lake Pichola, an artificial lake created in 1362 AD, with multiple palaces on its islands.",
+                "The city's City Palace is the largest royal complex in Rajasthan, built over a period of 400 years.",
+                "Udaipur houses the Jag Mandir, which inspired Shah Jahan to build the Taj Mahal.",
+                "The city is home to Saheliyon ki Bari, a garden with unique water fountains that work purely on water pressure without electricity.",
+                "Udaipur's Lake Palace featured as a key filming location in the James Bond film 'Octopussy'."
+            ],
+            "amritsar": [
+                "Amritsar's Golden Temple serves over 100,000 free meals daily, one of the largest free kitchens in the world.",
+                "The city has the only remaining Maharaja's summer palace that was converted into a school - Dharamshala.",
+                "Amritsar's Jallianwala Bagh was the site of one of India's most tragic massacres during British rule.",
+                "The city's Wagah Border ceremony is a unique daily military practice that has continued since 1959.",
+                "Amritsar was built around a man-made pool (Amrit Sarovar) that gives the city its name."
+            ],
+            "bhopal": [
+                "Bhopal has one of the largest artificial lakes in Asia, the Upper Lake, created in the 11th century.",
+                "The city is known as the 'City of Lakes' with over 18 lakes within its urban area.",
+                "Bhopal was ruled by a succession of women rulers for over 100 years, unique in India's princely history.",
+                "The city has Asia's largest mosque - Taj-ul-Masajid, with a capacity for 175,000 people.",
+                "Bhopal's Bharat Bhavan is one of India's most significant cultural institutions with tribal art museum."
+            ],
+            "indore": [
+                "Indore has been ranked India's cleanest city for six consecutive years (2017-2022).",
+                "The city's Rajwada Palace combines Maratha, Mughal, and French architectural styles.",
+                "Indore is famous for its unique street food, particularly 'Poha' and 'Sabudana Khichdi'.",
+                "The city was ruled by the Holkar dynasty, with Ahilyabai Holkar becoming one of India's most progressive women rulers.",
+                "Indore has one of the only seven Indian Institutes of Management originally established by the government."
+            ],
+            "chandigarh": [
+                "Chandigarh is one of the world's few perfectly planned cities, designed by Swiss-French architect Le Corbusier.",
+                "The city's Capitol Complex is a UNESCO World Heritage site.",
+                "Chandigarh has the highest per capita income in India.",
+                "The city is known as 'The City Beautiful' and is the first planned city post-independence.",
+                "Chandigarh's Rock Garden was secretly built by government official Nek Chand from industrial waste and discarded items."
+            ],
+            "nagpur": [
+                "Nagpur is located at the exact geographical center of India.",
+                "The city is known as the 'Orange City' as it's a major trade center for oranges grown in the region.",
+                "Nagpur hosts the headquarters of the RSS (Rashtriya Swayamsevak Sangh).",
+                "The city has one of the largest zero mile markers in India, indicating the geographical center of colonial India.",
+                "Nagpur's Deekshabhoomi is the largest hollow stupa in the world."
+            ],
+            "coimbatore": [
+                "Coimbatore is known as the 'Manchester of South India' due to its extensive textile industry.",
+                "The city is surrounded by the Western Ghats and is home to Siruvani water, considered the second tastiest water in the world.",
+                "Coimbatore has more than 25,000 small, medium, and large industries, making it one of India's major industrial hubs.",
+                "The city hosts India's first indigenous automobile company, Gedee Car Museum.",
+                "Coimbatore's Marudhamalai Temple sits at an altitude of 550 meters on a medicinal hill with unique healing plants."
+            ],
+            "mysore": [
+                "Mysore Palace is illuminated with nearly 100,000 light bulbs every Sunday evening and during festivals.",
+                "The city gave its name to Mysore silk, Mysore Pak (sweet), and Mysore sandalwood soap.",
+                "Mysore holds the world record for the largest yoga lesson with over 55,000 participants.",
+                "The city's traditional painting style, Mysore painting, is known for gold leaf overlays.",
+                "Mysore Dasara is one of the grandest festivals in India, celebrated for over 400 years."
+            ],
+            "visakhapatnam": [
+                "Visakhapatnam is the only city in India with two ports – a major port and a fishing harbor.",
+                "The city houses India's oldest shipyard, established in 1941.",
+                "Visakhapatnam's Submarine Museum is the first of its kind in Asia, featuring the actual submarine INS Kursura.",
+                "The city has India's highest point on the east coast – Dolphin's Nose, at 358 meters high.",
+                "Visakhapatnam's Borra Caves are among the largest in India, discovered in 1807."
+            ],
+            "bhubaneswar": [
+                "Bhubaneswar is known as the 'Temple City of India' with over 700 temples.",
+                "The city's Lingaraj Temple was built without using any binding material between stones.",
+                "Bhubaneswar, along with Puri and Konark, forms the Golden Triangle of Odisha tourism.",
+                "The city hosts the Mukteshwar Temple, known for its exquisite stone archway.",
+                "Bhubaneswar's Udayagiri and Khandagiri Caves date back to the 1st-2nd century BCE."
+            ],
+            "dehradun": [
+                "Dehradun is home to the prestigious Indian Military Academy and Forest Research Institute.",
+                "The city's name comes from two words: 'Dera' (camp) and 'Doon' (valley).",
+                "Dehradun has the world's oldest tea research association, established in 1898.",
+                "The city holds the headquarters of the Survey of India, India's central mapping agency.",
+                "Dehradun's Mindrolling Monastery has one of the largest stupas in Asia."
+            ],
+            "thiruvananthapuram": [
+                "Thiruvananthapuram's Padmanabhaswamy Temple contains treasure worth over $1 trillion, making it the richest temple in the world.",
+                "The city's name is one of the longest for an Indian city, meaning 'The City of Lord Anantha'.",
+                "Thiruvananthapuram was once the capital of the Kingdom of Travancore.",
+                "The city has the highest literacy rate among all district capitals in India.",
+                "Thiruvananthapuram's East Fort area houses the world's only 'sleeping Vishnu' temple inside a palace compound."
+            ],
+            "guwahati": [
+                "Guwahati is the gateway to Northeast India and houses the sacred Kamakhya Temple.",
+                "The city sits on the banks of the mighty Brahmaputra, one of Asia's major rivers.",
+                "Guwahati's Umananda Temple is located on the smallest inhabited riverine island in the world.",
+                "The city is home to IIT Guwahati, built on the northern banks of the Brahmaputra.",
+                "Guwahati has Asia's first traditional healing center focusing on ancient Ayurvedic practices."
+            ],
+            "raipur": [
+                "Raipur produces 10% of India's steel and is known as the 'Iron City' of India.",
+                "The city has the largest man-made jungle safari in India, the Naya Raipur Jungle Safari.",
+                "Raipur houses the first garbage café in Chhattisgarh, where people can exchange plastic waste for food.",
+                "The city's Purkhauti Muktangan is one of the largest museums of Chhattisgarh culture and history.",
+                "Raipur's Mahant Ghasidas Memorial Museum holds rare ancient sculptures dating back to the 10th century."
+            ],
+            "shimla": [
+                "Shimla was the summer capital of British India, called the 'Queen of Hills'.",
+                "The city has the world's highest cricket ground at Chail, at an altitude of 2,444 meters.",
+                "Shimla houses Christ Church, the second oldest church in northern India.",
+                "The city's famous Kalka-Shimla railway is a UNESCO World Heritage site with 103 tunnels.",
+                "Shimla's Mall Road is the longest pedestrian shopping street in the world at its altitude."
+            ],
+            "gangtok": [
+                "Gangtok is one of the few state capitals in India without a railway station.",
+                "The city has one of India's highest cable car rides, offering panoramic Himalayan views.",
+                "Gangtok's name means 'hill top' in the Tibetan language.",
+                "The city has India's first paragliding facility and adventure sports institute.",
+                "Gangtok is home to the Namgyal Institute of Tibetology, a major center for Tibetan studies."
+            ],
+            "darjeeling": [
+                "Darjeeling's tea is known as the 'Champagne of Teas', cultivated since 1841.",
+                "The city's Darjeeling Himalayan Railway, known as the 'Toy Train', is a UNESCO World Heritage site.",
+                "Darjeeling has Tiger Hill, famous for simultaneously viewing sunrise on Kanchenjunga and Mt. Everest.",
+                "The city houses the Himalayan Mountaineering Institute established after the first successful Everest expedition.",
+                "Darjeeling's botanical garden has over 300 species of plants, including rare Himalayan orchids."
+            ],
+            "rishikesh": [
+                "Rishikesh gained worldwide fame when The Beatles visited Maharishi Mahesh Yogi's ashram in 1968.",
+                "The city has the 13-story Trayambakeshwar Temple with each floor dedicated to a different god.",
+                "Rishikesh is known as the 'Yoga Capital of the World' with numerous yoga schools.",
+                "The city's Laxman Jhula suspension bridge is supposedly where Lord Rama's brother crossed the Ganges on jute ropes.",
+                "Rishikesh hosts the International Yoga Festival annually, attracting participants from over 80 countries."
+            ],
+            "madurai": [
+                "Madurai's Meenakshi Amman Temple tank's water has the unique quality of killing bacteria while preserving good elements.",
+                "The city is over 2,500 years old, making it one of the oldest continuously inhabited cities in the world.",
+                "Madurai's jasmine variety (Madurai Malli) has received a Geographical Indication tag for its unique fragrance.",
+                "The city's Meenakshi Temple has 14 gateway towers, with the tallest being 52 meters high.",
+                "Madurai was the capital of the Pandya kingdom and a major center for Tamil literature."
+            ],
+            "jodhpur": [
+                "Jodhpur is known as the 'Blue City' because many houses near the fort are painted blue.",
+                "The city's Mehrangarh Fort sits 400 feet above the city on a perpendicular cliff.",
+                "Jodhpur has India's largest private residence - Umaid Bhawan Palace, partially converted into a hotel.",
+                "The city gave its name to jodhpurs, the riding pants originally worn by local horsemen.",
+                "Jodhpur receives almost year-round sunshine, earning it the nickname 'Sun City'."
+            ],
+            "goa": [
+                "Goa has India's only naval aviation museum.",
+                "The state has the highest per capita income in India.",
+                "Goa's Dudhsagar Falls is one of India's tallest waterfalls at 310 meters high.",
+                "The state has a unique Anglo-Indian cuisine called 'Goan cuisine'.",
+                "Goa was under Portuguese rule for 450 years, longer than any other part of India under colonial rule."
+            ],
+            "vadodara": [
+                "Vadodara's Laxmi Vilas Palace is four times the size of Buckingham Palace.",
+                "The city houses MS University, the only university in India built by a princely state.",
+                "Vadodara was once the capital of the progressive Baroda State under Maharaja Sayajirao Gaekwad III.",
+                "The city's Nyay Mandir (Temple of Justice) is built in the Indo-Saracenic style with a mix of Hindu, Islamic, and European elements.",
+                "Vadodara hosts India's largest fine arts fair - the Vadodara Art Festival."
+            ],
+            "patna": [
+                "Patna is one of the oldest continuously inhabited places in the world, over 2,500 years old.",
+                "The city was home to Nalanda University, one of the world's first residential universities.",
+                "Patna's Golghar, a beehive-shaped granary, was built in 1786 after a devastating famine.",
+                "The city has the world's longest river bridge over the Ganges, the Mahatma Gandhi Setu.",
+                "Patna was the capital of the Magadh Empire and the center of many ancient empires."
+            ],
+            "haridwar": [
+                "Haridwar hosts the Kumbh Mela every 12 years, one of the largest religious gatherings in the world.",
+                "The city's name means 'Gateway to God' with 'Hari' meaning God and 'dwar' meaning gate.",
+                "Haridwar is one of the seven holiest places for Hindus.",
+                "The city has the world's largest statue of Lord Shiva in a meditation pose at Haridwar's Shantikunj.",
+                "Haridwar's Har Ki Pauri ghat is believed to have the footprint of Lord Vishnu."
+            ],
+            "mathura": [
+                "Mathura is believed to be the birthplace of Lord Krishna and one of the seven sacred cities for Hindus.",
+                "The city has over 5,000 temples throughout its area.",
+                "Mathura's pedhas (milk-based sweets) are famous throughout India.",
+                "The city houses one of the oldest Sanskrit schools in India - the Dwarkadhish Sanskrit Academy.",
+                "Mathura has evidence of continuous settlement dating back to 1200 BCE."
+            ],
+            "pushkar": [
+                "Pushkar has one of the few Brahma temples in the world, as most are dedicated to Vishnu or Shiva.",
+                "The city hosts the world's largest camel fair annually.",
+                "Pushkar Lake is said to have appeared when Lord Brahma dropped a lotus flower.",
+                "The city has 52 ghats and over 500 temples.",
+                "Pushkar is mentioned in the Padma Purana as 'Tirtha-Raj', the king of pilgrimage sites."
+            ],
+            "aurangabad": [
+                "Aurangabad is known as the 'City of Gates' with 52 gates built during medieval times.",
+                "The city is home to the Bibi Ka Maqbara, known as the 'Taj of the Deccan'.",
+                "Aurangabad has the only tool museum in Asia at Waluj.",
+                "The city is the tourism hub for UNESCO World Heritage Sites Ajanta and Ellora Caves.",
+                "Aurangabad's unique himroo fabric weaving tradition dates back to the 14th century."
+            ],
+            "ujjain": [
+                "Ujjain houses the Mahakaleshwar Jyotirlinga, one of the 12 sacred Shiva shrines.",
+                "The city has one of the four Kumbh Mela sites.",
+                "Ujjain was the center of astronomical studies in ancient India, with legendary astronomer Varahamihira working here.",
+                "The city lies on the Tropic of Cancer and was used to calculate Indian Standard Time in ancient times.",
+                "Ujjain's Jantar Mantar observatory built by Raja Jai Singh II is still used for astronomical studies."
+            ],
+            "ajmer": [
+                "Ajmer houses the shrine of Khwaja Moinuddin Chishti, visited by people of all faiths.",
+                "The city has Asia's first government Muslim Anglo-Oriental College, now Aligarh Muslim University.",
+                "Ajmer was one of the few areas directly ruled by the British and not a princely state.",
+                "The city's Adhai Din Ka Jhonpra mosque was reportedly built in just two and a half days.",
+                "Ajmer houses Mayo College, known as the 'Eton of the East', established in 1875 for Indian nobility."
+            ],
+            "puri": [
+                "Puri's Jagannath Temple's flag always flows in the opposite direction of the wind.",
+                "The city is one of the four sacred Char Dham pilgrimage sites for Hindus.",
+                "Puri hosts the famous Rath Yatra (chariot festival), which inspired the English word 'juggernaut'.",
+                "The city's main deity, Lord Jagannath, is given a 'fever' before the Rath Yatra, with priests applying medicinal pastes.",
+                "Puri's temple kitchen can cook for 100,000 people daily, using only traditional methods."
+            ],
+            "nashik": [
+                "Nashik is one of the four locations where the Kumbh Mela is held every 12 years.",
+                "The city produces 80% of India's grapes and is known as the 'Wine Capital of India'.",
+                "Nashik houses the Currency Note Press, one of only four locations where Indian currency is printed.",
+                "The city is believed to be the place where Lord Rama, Sita, and Lakshmana spent a significant part of their exile.",
+                "Nashik's Panchavati area has five banyan trees that are mentioned in the Ramayana."
+            ],
+            "allahabad": [
+                "Allahabad (now officially Prayagraj) is located at the sacred confluence of three rivers - Ganga, Yamuna, and the mythical Saraswati.",
+                "The city hosts the largest religious gathering in the world, the Maha Kumbh Mela, every 12 years.",
+                "Allahabad has the world's largest banyan tree in Allahabad University campus, covering 2.1 hectares.",
+                "The city's Allahabad High Court building is the largest high court building in Asia.",
+                "Allahabad Fort was built by Emperor Akbar in 1583 and houses an Ashoka Pillar from 232 BCE."
+            ],
+            "shirdi": [
+                "Shirdi receives over 25,000 visitors daily, making it one of India's most visited religious sites.",
+                "The city's economy is almost entirely based on religious tourism related to Sai Baba.",
+                "Shirdi's temple prasadam is cooked in solar kitchens, one of the largest in India.",
+                "The city's Samadhi Temple was constructed in 1922, just four years after Sai Baba passed away.",
+                "Shirdi's Dwarkamai mosque was Sai Baba's residence for over 60 years and is still preserved."
+            ],
+            "tirupati": [
+                "Tirupati's Venkateshwara Temple is the world's richest temple with annual donations exceeding $150 million.",
+                "The city's temple makes and distributes over 300,000 laddus (sweet offering) daily.",
+                "Tirupati Temple has more gold than many countries' gold reserves.",
+                "The city's temple barbers shave about 20,000 devotees' heads daily as part of a sacred offering.",
+                "Tirupati holds the record for most visitors to a religious place daily, with approximately 50,000-100,000 pilgrims."
+            ],
+            "shillong": [
+                "Shillong is known as the 'Scotland of the East' for its rolling hills and European atmosphere.",
+                "The city houses India's only matrilineal society, the Khasi tribe.",
+                "Shillong's Police Bazaar is still laid out according to British colonial town planning.",
+                "The city has India's highest golf course at an altitude of 5,200 feet.",
+                "Shillong receives the highest rainfall in India after Mawsynram, both in Meghalaya."
+            ],
+            "kanpur": [
+                "Kanpur was known as the 'Manchester of the East' during British rule due to its booming textile industry.",
+                "The city houses the largest tannery in India and is a major center for leather production.",
+                "Kanpur's JK Temple is built entirely of white marble brought from Makrana in Rajasthan.",
+                "The city played a significant role in the 1857 Indian Rebellion, with the Bibighar massacre becoming a turning point.",
+                "Kanpur is home to the Indian Institute of Technology (IIT Kanpur), one of India's premier engineering institutions."
+            ],
+            "jhansi": [
+                "Jhansi is famous for its fearless queen, Rani Lakshmibai, who fought against the British during the 1857 rebellion.",
+                "The city's Jhansi Fort was built by Raja Bir Singh Judeo of Orchha in 1613 on a rocky hill called Bangira.",
+                "Jhansi houses unique temples like the Iskcon temple and the ancient Mahalakshmi Temple.",
+                "The city celebrates the Jhansi Mahotsav annually, showcasing the region's art, culture, and history.",
+                "Jhansi's St. Jude's Shrine is one of the oldest Catholic churches in the region, built in 1873."
+            ],
+            "jhalawar": [
+                "Jhalawar is known for its distinctive Sohagpuri prints, a traditional hand block printing technique.",
+                "The city houses the magnificent Garh Palace, blending Rajput and Mughal architectural styles.",
+                "Jhalawar is famous for its orange gardens, earning it the nickname 'City of Oranges' in Rajasthan.",
+                "The city's Chandrabhaga Fair is one of the largest cattle fairs in Rajasthan.",
+                "Jhalawar contains prehistoric rock shelters and paintings at Gagron dating back to 2500-1500 BCE."
+            ],
+            "kota": [
+                "Kota is known as the 'Education City of India' with hundreds of coaching institutes preparing students for competitive exams.",
+                "The city is famous for its unique style of Doria sarees woven from cotton and silk threads.",
+                "Kota houses the Kishore Sagar Lake, an artificial lake built in 1346 AD with a palace in its center.",
+                "The city was once the part of the larger kingdom of Bundi and got its name from the massive walls (kot) built around it.",
+                "Kota is home to one of the largest artificial lakes in India, the Chambal Garden, situated along the Chambal River."
+            ],
+            "chennai": [
+                "Chennai has the second-longest urban beach in the world, Marina Beach, stretching 13 kilometers.",
+                "The city was the first in India to introduce a corporation system of civic administration in 1688.",
+                "Chennai has one of the largest public library networks in the world with over 6 million books.",
+                "The city's Music Season is the world's largest cultural event with over 1,500 performances in 60 days.",
+                "Chennai is home to one of the oldest existing corporations in the world, the Madras Corporation, established in 1688."
+            ],
+            // Landmarks
+            "eiffel tower": [
+                "The Eiffel Tower was originally intended to be a temporary structure for the 1889 World's Fair.",
+                "The Eiffel Tower is repainted every 7 years using 60 tons of paint.",
+                "There are 1,665 steps to the top of the Eiffel Tower.",
+                "Gustave Eiffel had an apartment near the top of the tower.",
+                "The Eiffel Tower was the tallest man-made structure in the world for 41 years."
+            ],
+            "grand canyon": [
+                "The Grand Canyon is 277 miles long, up to 18 miles wide, and over a mile deep.",
+                "The Grand Canyon took about 5-6 million years to form.",
+                "The temperature difference between the rim and the canyon floor can be over 25 degrees.",
+                "There are approximately 1,000 caves in the Grand Canyon, but only 335 have been documented.",
+                "The Grand Canyon contains some of the oldest exposed rock on Earth, dating back 2 billion years."
+            ],
+            "great wall of china": [
+                "Contrary to popular belief, the Great Wall of China cannot be seen from the moon with the naked eye.",
+                "The Great Wall of China is not a single wall but a collection of walls built over dynasties.",
+                "The mortar used to bind the stones includes sticky rice!",
+                "The total length of all sections of the Great Wall is approximately 13,171 miles.",
+                "During its construction, the Great Wall was called 'the longest cemetery on earth' because so many died building it."
+            ]
+        };
+
+        // Generic facts to use when specific location data isn't available
+        const genericFacts = [
+            "The Earth is approximately 4.54 billion years old.",
+            "There are approximately 7.9 billion people on Earth as of 2023.",
+            "About 71% of the Earth's surface is covered by water.",
+            "The Amazon rainforest produces about 20% of the Earth's oxygen.",
+            "The Great Barrier Reef is the largest living structure on Earth, visible even from space.",
+            "Mount Everest grows about 4mm taller every year due to geological forces.",
+            "The Sahara Desert expands and contracts seasonally, and its size changes over longer periods too.",
+            "There are approximately 8.7 million species on Earth, but scientists estimate that 86% of land species and 91% of marine species are still undiscovered."
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentLocationBtn = document.getElementById('current-location-btn');
+            const manualLocationBtn = document.getElementById('manual-location-btn');
+            const inputGroup = document.getElementById('input-group');
+            const locationInput = document.getElementById('location-input');
+            const searchBtn = document.getElementById('search-btn');
+            const locationDisplay = document.getElementById('location-display');
+            const factsContainer = document.getElementById('facts-container');
+            const factsList = document.getElementById('facts-list');
+            const loader = document.getElementById('loader');
+
+            // Use current location
+            currentLocationBtn.addEventListener('click', function() {
+                if (navigator.geolocation) {
+                    loader.style.display = 'block';
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            const latitude = position.coords.latitude;
+                            const longitude = position.coords.longitude;
+                            
+                            // Reverse geocoding to get location name
+                            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    loader.style.display = 'none';
+                                    
+                                    let locationName = '';
+                                    if (data.address) {
+                                        if (data.address.city) {
+                                            locationName = data.address.city;
+                                        } else if (data.address.town) {
+                                            locationName = data.address.town;
+                                        } else if (data.address.village) {
+                                            locationName = data.address.village;
+                                        }
+                                        
+                                        if (data.address.country) {
+                                            if (locationName) {
+                                                locationName += `, ${data.address.country}`;
+                                            } else {
+                                                locationName = data.address.country;
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (!locationName) {
+                                        locationName = `Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}`;
+                                    }
+                                    
+                                    displayFacts(locationName);
+                                })
+                                .catch(error => {
+                                    loader.style.display = 'none';
+                                    console.error('Error fetching location data:', error);
+                                    displayFacts(`Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}`);
+                                });
+                        },
+                        function(error) {
+                            loader.style.display = 'none';
+                            alert('Unable to get your location. Please allow location access or enter a location manually.');
+                            inputGroup.style.display = 'block';
+                        }
+                    );
+                } else {
+                    alert('Geolocation is not supported by your browser. Please enter a location manually.');
+                    inputGroup.style.display = 'block';
+                }
+            });
+
+            // Manual location entry
+            manualLocationBtn.addEventListener('click', function() {
+                inputGroup.style.display = 'block';
+                locationInput.focus();
+            });
+
+            // Search button
+            searchBtn.addEventListener('click', function() {
+                const location = locationInput.value.trim();
+                if (location) {
+                    displayFacts(location);
+                } else {
+                    alert('Please enter a location.');
+                }
+            });
+
+            // Enter key in input
+            locationInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const location = locationInput.value.trim();
+                    if (location) {
+                        displayFacts(location);
+                    } else {
+                        alert('Please enter a location.');
+                    }
+                }
+            });
+
+            // Display facts for a location
+            function displayFacts(location) {
+                locationDisplay.textContent = `Location: ${location}`;
+                factsList.innerHTML = '';
+                
+                // Find matching facts
+                let facts = [];
+                const locationLower = location.toLowerCase();
+                
+                // Check for country, city, or landmark matches
+                for (const key in locationFacts) {
+                    if (locationLower.includes(key)) {
+                        facts = locationFacts[key];
+                        break;
+                    }
+                }
+                
+                // If no specific facts found, use generic facts
+                if (facts.length === 0) {
+                    facts = genericFacts;
+                    
+                    // Try to get some location-specific facts from an API
+                    loader.style.display = 'block';
+                    fetchWikipediaFacts(location)
+                        .then(apiFacts => {
+                            loader.style.display = 'none';
+                            if (apiFacts && apiFacts.length > 0) {
+                                displayFactsList(apiFacts);
+                            } else {
+                                displayFactsList(facts);
+                            }
+                        })
+                        .catch(() => {
+                            loader.style.display = 'none';
+                            displayFactsList(facts);
+                        });
+                } else {
+                    displayFactsList(facts);
+                }
+            }
+            
+            // Display the facts in the UI
+            function displayFactsList(facts) {
+                // Choose 5 random facts
+                const randomFacts = facts.sort(() => 0.5 - Math.random()).slice(0, 5);
+                
+                factsList.innerHTML = '';
+                randomFacts.forEach(fact => {
+                    const factElement = document.createElement('div');
+                    factElement.className = 'fact';
+                    factElement.textContent = fact;
+                    factsList.appendChild(factElement);
+                });
+                
+                factsContainer.style.display = 'block';
+            }
+            
+            // Fetch facts from Wikipedia API
+            async function fetchWikipediaFacts(location) {
+                try {
+                    const response = await fetch(
+                        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(location)}`
+                    );
+                    
+                    if (!response.ok) {
+                        return null;
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.extract) {
+                        // Split the extract into sentences
+                        const sentences = data.extract.match(/[^\.!\?]+[\.!\?]+/g) || [];
+                        return sentences.map(s => s.trim()).filter(s => s.length > 30);
+                    }
+                    
+                    return null;
+                } catch (error) {
+                    console.error('Error fetching Wikipedia data:', error);
+                    return null;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
